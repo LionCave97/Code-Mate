@@ -16,13 +16,23 @@ from datetime import datetime
 from langchain.llms import OpenAI as LangChainOpenAI
 import openai
 from fastapi.responses import JSONResponse
+from fastapi import Request
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
+# Start Server:
+#  uvicorn main:app --reload
 app = FastAPI()
+origins = ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-os.environ["OPENAI_API_KEY"] = "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"
-openai.api_key = "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"
+
 
 
 global generated_code
@@ -54,7 +64,7 @@ def getLaunguages():
 
 code_prompt = ""
 code_language = ""
-
+add_prompt = None
 @app.get("/generateCode", response_class=HTMLResponse)
 def generateCode(prompt, language):
     print("Data Received", prompt, language)
@@ -73,25 +83,41 @@ def generateCode(prompt, language):
     print("Code:", gencode)
     return gencode
 
+@app.post("/addCode", response_class=HTMLResponse)
+def addCode(prompt, add, language):
+    print("Data Received", prompt, language)
+    global code_prompt
+    global code_language
+    global add_prompt
+    print("Add", add)
+
+    # addReceived = Request(add)
+    print("Language API", language)
+    # print("Add", addReceived)
+
+    # if prompt is None:
+    #    prompt = "get the weather for pretoria"
+    # if language is None:
+    #    language = 'python'
+    code_prompt = prompt
+    add_prompt = add
+    code_language = language
+    print("API Call", code_prompt, code_language)
+    gencode = ""
+    gencode =  add_code()
+    print("Code:", gencode)
+    return gencode
+
 
 # LLM Chains definition
 # Create an OpenAI LLM model
 open_ai_llm = OpenAI(temperature=0.7, max_tokens=1000)
-
-
-
-
 
 
 # Memory for the conversation
 memory = ConversationBufferMemory(
     input_key='code_topic', memory_key='chat_history')
 # Create a chain that generates the code
-
-
-# LLM Chains definition
-# Create an OpenAI LLM model
-open_ai_llm = OpenAI(temperature=0.7, max_tokens=1000)
 
 
 
@@ -109,6 +135,28 @@ def generate_code():
         codeLanguage = code_language
         # print(generatedCode)
         return(generatedCode)
+
+    except Exception as e:
+        
+        logger.error(f"Error in code generation: {traceback.format_exc()}")
+
+def add_code():
+    logger = logging.getLogger(__name__)
+    try:
+        # print("Chain", code_chain)
+        # Prompt Templates
+        print("Add Prompt ", add_prompt)
+        code_template = PromptTemplate(input_variables=['code_topic'], template=f'Take the exsiting code {add_prompt}' +' written in '+ f'{code_language} language' + ' and add the following {code_topic}')
+        code_chain = LLMChain(llm=open_ai_llm, prompt=code_template, output_key='code', memory=memory, verbose=True)
+        # print("Prompt", code_prompt)
+        # print("add Prompt", add_prompt)
+
+        # print("Language", code_language)
+
+        addCode = code_chain.run(code_prompt)
+        codeLanguage = code_language
+        # print(generatedCode)
+        return(addCode)
 
     except Exception as e:
         
