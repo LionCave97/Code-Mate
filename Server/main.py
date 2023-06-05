@@ -60,8 +60,6 @@ def hello():
 def getLaunguages():
   return LANGUAGE_CODES
 
-
-
 code_prompt = ""
 code_language = ""
 add_prompt = None
@@ -108,6 +106,44 @@ def addCode(prompt, add, language):
     print("Code:", gencode)
     return gencode
 
+@app.post("/whatCode", response_class=HTMLResponse)
+def addCode(prompt):
+    print("Data Received", prompt)
+    global code_prompt
+
+    # if prompt is None:
+    #    prompt = "get the weather for pretoria"
+    # if language is None:
+    #    language = 'python'
+    code_prompt = prompt
+    print("API Call", code_prompt)
+    gencode = ""
+    gencode =  what_code()
+    print("Code:", gencode)
+    return gencode
+
+@app.post("/improve", response_class=HTMLResponse)
+def addCode(prompt, advice):
+    print("Data Received", prompt)
+    global code_prompt
+    global add_prompt
+    print("Add", advice)
+
+    # addReceived = Request(add)
+    # print("Add", addReceived)
+
+    # if prompt is None:
+    #    prompt = "get the weather for pretoria"
+    # if language is None:
+    #    language = 'python'
+    code_prompt = prompt
+    add_prompt = advice
+    print("API Call", code_prompt)
+    gencode = ""
+    gencode =  improve_code()
+    print("Code:", gencode)
+    return gencode
+
 
 # LLM Chains definition
 # Create an OpenAI LLM model
@@ -146,7 +182,7 @@ def add_code():
         # print("Chain", code_chain)
         # Prompt Templates
         print("Add Prompt ", add_prompt)
-        code_template = PromptTemplate(input_variables=['code_topic'], template=f'Take the exsiting code {add_prompt}' +' written in '+ f'{code_language} language' + ' and add the following {code_topic}')
+        code_template = PromptTemplate(input_variables=['code_topic'], template=f'Take the existing code {add_prompt}' +' written in '+ f'{code_language} language' + ' and add the following {code_topic}')
         code_chain = LLMChain(llm=open_ai_llm, prompt=code_template, output_key='code', memory=memory, verbose=True)
         # print("Prompt", code_prompt)
         # print("add Prompt", add_prompt)
@@ -157,6 +193,43 @@ def add_code():
         codeLanguage = code_language
         # print(generatedCode)
         return(addCode)
+
+    except Exception as e:
+        
+        logger.error(f"Error in code generation: {traceback.format_exc()}")
+
+def what_code():
+    logger = logging.getLogger(__name__)
+    try:
+        # print("Chain", code_chain)
+        # Prompt Templates
+        print("Add Prompt ", add_prompt)
+        code_template = PromptTemplate(input_variables=['code_topic'], template= 'what does this code do {code_topic} and in what language is it written?')
+        code_chain = LLMChain(llm=open_ai_llm, prompt=code_template, output_key='code', memory=memory, verbose=True)
+        # print("Prompt", code_prompt)
+        # print("add Prompt", add_prompt)
+
+        # print("Language", code_language)
+
+        whatCode = code_chain.run(code_prompt)
+        codeLanguage = code_language
+        # print(generatedCode)
+        return(whatCode)
+
+    except Exception as e:
+        
+        logger.error(f"Error in code generation: {traceback.format_exc()}")
+
+def improve_code():
+    logger = logging.getLogger(__name__)
+    try:
+        print("Add Prompt ", add_prompt)
+        code_template = PromptTemplate(input_variables=['code_topic'], template= ' give me advice on {code_topic} for this code'+ f' {add_prompt}' )
+        code_chain = LLMChain(llm=open_ai_llm, prompt=code_template, output_key='code', memory=memory, verbose=True)
+
+        adviceCode = code_chain.run(code_prompt)
+        # print(generatedCode)
+        return(adviceCode)
 
     except Exception as e:
         
